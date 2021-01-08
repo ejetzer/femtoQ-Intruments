@@ -9,14 +9,14 @@
 // Inclusions
 #define BROCHE 2 // La broche 2 permet les interruptions[^2] sur Arduino Due, Mega & micro
 #define ENVOI_AUTOMATIQUE true // Permet de régler l'envoi automatique des données à un intervalle.
-#define MINUTE 3600.0 // [ms/s] Facteur de conversion en minutes
-#define FACTEUR_DEBIT 98 // [L] Facteur dans la spécification du débitmètre[^3]
-#define DELAI_MESURE 1000 // [ms] Délai entre les calculs de débit
-#define DELAI_COM 2000 // [ms] Délai minimal entre les communications
+#define SECONDE 1000.0 // [ms/s] Facteur de conversion en secondes
+#define MINUTE 60.0 // [s/min] Facteur de conversion en minutes
+#define FACTEUR_DEBIT 98.0 // [Hz*min/L] Facteur dans la spécification du débitmètre[^3]
+#define DELAI_MESURE 1000u // [ms] Délai entre les calculs de débit
+#define DELAI_COM 2000u // [ms] Délai minimal entre les communications
 
 // Variables globales
 volatile uint32_t nombre_de_tours = 0; // Nombre de tours dans les derniers delai ms
-float debit = 0.0; // [Hz]
 uint32_t derniere_mesure, derniere_com; // [ms] Moment de la dernière mesure ou communication
 
 void setup() {
@@ -25,7 +25,7 @@ void setup() {
   pinMode(BROCHE, INPUT); // Initialiser les broches de lecture
   attachInterrupt(digitalPinToInterrupt(BROCHE), isr, RISING); // Interruption[^2]
   while (!Serial) {;} // Attente pour la communication série...
-  Serial.println("t[min] f[L/min]"); // Annonce des colonnes
+  Serial.println("t[min] f[Hz] Q[L/min]"); // Annonce des colonnes
 }
 
 void loop() {
@@ -60,9 +60,10 @@ void isr(void) {
 
 void exec_com(String commande) {
   if (commande == "lire") {
-    float heure = derniere_mesure / MINUTE; // [s]
-    float debit = FACTEUR_DEBIT * MINUTE * nombre_de_tours / DELAI_MESURE; // [Hz]
-    Serial.println(String(heure) + " " + String(debit));
+    float heure = millis() / SECONDE / MINUTE; // [s]
+    float freq = SECONDE * nombre_de_tours / DELAI_MESURE; //[Hz] 
+    float debit = SECONDE * nombre_de_tours / DELAI_MESURE / FACTEUR_DEBIT; // [L/min]
+    Serial.println(String(heure) + " " + String(freq) + " " + String(debit));
     derniere_com = millis();
   }
 }
