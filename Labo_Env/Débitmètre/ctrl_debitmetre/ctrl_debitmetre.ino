@@ -7,72 +7,68 @@
 */
 
 // Inclusions
-#define BROCHE 2 // La broche 2 permet les interruptions[^2]
-#define ENVOI_AUTOMATIQUE false // Permet de régler l'envoi automatique des données à un intervalle.
+#define BROCHE 2 // La broche 2 permet les interruptions[^2] sur Arduino Due, Mega & micro
+#define ENVOI_AUTOMATIQUE true // Permet de régler l'envoi automatique des données à un intervalle.
+#define MINUTE 3600.0 // [ms/s] Facteur de conversion en minutes
+#define FACTEUR_DEBIT 98 // [L] Facteur dans la spécification du débitmètre[^3]
+#define DELAI_MESURE 1000 // [ms] Délai entre les calculs de débit
+#define DELAI_COM 2000 // [ms] Délai minimal entre les communications
 
 // Variables globales
-volatile long unsigned int nombre_de_tours = 0; // Nombre de tours dans les derniers delai ms
-unsigned int delai = 1000; // [ms] Délai entre les calculs de débit
-unsigned int delai_com = 2000; // [ms] Délai minimal entre les communications
-float debit = 0; // [Hz]
-long unsigned int derniere_mesure = 0; // [ms] Moment de la dernière mesure
-long unsigned int derniere_com = 0; // [ms] Moment de la dernière vérification de communication
+volatile uint32_t nombre_de_tours = 0; // Nombre de tours dans les derniers delai ms
+float debit = 0.0; // [Hz]
+uint32_t derniere_mesure, derniere_com; // [ms] Moment de la dernière mesure ou communication
 
 void setup() {
   // Intialiser la communication série
   Serial.begin(9600); // Bas débit pour permettre la gestion des interruptions.
-
-  // Initialiser les broches de lecture
-  pinMode(13, INPUT);
-
-  // Configurer l'interruption[^2]
-  attachInterrupt(digitalPinToInterrupt(BROCHE), interruption, RISING);
-
-  // Attente pour la communication série...
-  while (!Serial) {;}
-
-  // Annonce des colonnes
-  Serial.println("t[s] f[Hz]");
+  pinMode(BROCHE, INPUT); // Initialiser les broches de lecture
+  attachInterrupt(digitalPinToInterrupt(BROCHE), isr, RISING); // Interruption[^2]
+  while (!Serial) {;} // Attente pour la communication série...
+  Serial.println("t[min] f[L/min]"); // Annonce des colonnes
 }
 
 void loop() {
   // On vérifie périodiquement si on a une demande de communication,
   // mais pas trop souvent: ça interfère avec l'exécution des interruptions.
-  if ( (millis() - derniere_com) >= delai_com ) {
-    // Est-ce qu'il y a une demande d'information?
-    if (Serial.available()) {
+  if ( (millis() - derniere_com) >= DELAI_COM ) {
+    if (Serial.available()) { // Est-ce qu'il y a une demande d'information?
       detachInterrupt(digitalPinToInterrupt(BROCHE));
+      
       String commande = Serial.readStringUntil('\n'); // [^1]
-      Serial.println(commande);
-  
-      if (commande == "lire") {
-        float heure = (float)derniere_mesure / 1000.0; // [s]
-        Serial.println(String(heure) + " " + String(debit));
-      }
-      attachInterrupt(digitalPinToInterrupt(BROCHE), interruption, RISING);
+      exec_com(commande);
+      
+      attachInterrupt(digitalPinToInterrupt(BROCHE), isr, RISING);
     } else if (ENVOI_AUTOMATIQUE) {
       detachInterrupt(digitalPinToInterrupt(BROCHE));
-      float heure = (float)derniere_mesure / 1000.0; // [s]
-      Serial.println(String(heure) + " " + String(debit));
-      attachInterrupt(digitalPinToInterrupt(BROCHE), interruption, RISING);
+      exec_com("lire");
+      attachInterrupt(digitalPinToInterrupt(BROCHE), isr, RISING);
     }
-    derniere_com = millis();
   }
 
   // Mise à jour des lectures
-  if ( (millis() - derniere_mesure) >= delai ) {
-    debit = 1000.0 * (float)nombre_de_tours / (float)delai; // [Hz]
+  if ( (millis() - derniere_mesure) >= DELAI_MESURE ) {
     nombre_de_tours = 0;
     derniere_mesure = millis();
   }
 }
 
-void interruption(void) {
+void isr(void) {
   // Ajout d'un tour
   nombre_de_tours++;
+}
+
+void exec_com(String commande) {
+  if (commande == "lire") {
+    float heure = derniere_mesure / MINUTE; // [s]
+    float debit = FACTEUR_DEBIT * MINUTE * nombre_de_tours / DELAI_MESURE; // [Hz]
+    Serial.println(String(heure) + " " + String(debit));
+    derniere_com = millis();
+  }
 }
 
 /*
    [^1]: https://www.arduino.cc/reference/en/language/functions/communication/serial/readstringuntil/
    [^2]: https://www.arduino.cc/reference/en/language/functions/external-interrupts/attachinterrupt/
+   [^3]: https://digiten.shop/collections/counter/products/digiten-0-3-6l-min-g1-4-water-coffee-flow-hall-sensor-switch-meter-flowmeter-counter-connect-hose
 */
