@@ -60,7 +60,7 @@ void isr(void) {
 
 void exec_com(String commande) {
   if (commande == "lire") {
-    float heure = millis() / SECONDE / MINUTE; // [s]
+    float heure = millis() / SECONDE / MINUTE; // [min]
     float freq = SECONDE * nombre_de_tours / DELAI_MESURE; //[Hz] 
     float debit = SECONDE * nombre_de_tours / DELAI_MESURE / FACTEUR_DEBIT; // [L/min]
     Serial.println(String(heure) + " " + String(freq) + " " + String(debit));
