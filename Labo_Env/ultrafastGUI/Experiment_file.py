@@ -11,7 +11,7 @@ import femtoQ.tools as fq
 import scipy.interpolate as interp
 import scipy.signal as sgn
 import serial
-
+import os
 
 class CreateLayout:
     """
@@ -630,7 +630,7 @@ class ZeroDelay:
             answ = messagebox.askyesno(title='INFO', message='Experiment was'+
                                        'aborted./n Do you want to save your Data?')
             if answ:
-                file_data = np.array([abs_vals[:i,:], values[:i, :]])
+                file_data = np.array([absc_vals[:i,:], values[:i, :]])
                 np.save('measurements/' + filename, file_data)
         else:
             self.PI.device.MOV(self.PI.axes, min_pos)
@@ -2747,16 +2747,24 @@ class LaserCooling:
         self.PI = mainf.Frame[2].Linstage
         self.Spectro = mainf.Frame[3].Spectro
         
+    def pos_2_delay(self,zero,pos):
+            return  2*(zero-pos)*1e9/(299792458)
+        
+    def delay_2_pos(self,delay):
+            return (299792458)*delay/(2e6)
+        
     def create_frame(self, frame):
         # Define labels
                 # Delay line
         pos_lbl = tk.Label(frame, text = 'Go to position (mm):')
         vel_lbl = tk.Label(frame, text = 'Set velocity to:')
+        filename_lbl = tk.Label(frame, text = 'File name:')
         param_lbl = tk.Label(frame, text = 'Experiment parameters')
         min_lbl = tk.Label(frame, text = 'Min. pos. (mm):')
         max_lbl = tk.Label(frame, text = 'Max. pos. (mm):')
         zero_lbl = tk.Label(frame, text = 'Pos. Zero Delay (mm):')
         step_lbl = tk.Label(frame, text = 'Step size (um):')
+        # delay_lbl = tk.Label(frame, text = 'Delay per step (ps):')
         utime_lbl = tk.Label(frame, text='Update graph after [s]:')
                 # 
         def connect_and_disable_stage(self,dev_name=None):
@@ -2768,37 +2776,42 @@ class LaserCooling:
                 # Pi Stage
         con_b = tk.Button(frame, text='Connect SMC linear stage',
                                       command=lambda: connect_and_disable_stage(self,dev_name='SMC100'))
-                # 
 
                 
         # Define variables
                 # PI stage
         self.pos_var = tk.DoubleVar()
         self.vel_var = tk.DoubleVar()
+        self.filename_var = tk.StringVar()
         self.vel_disp = tk.DoubleVar()
-
-        min_var = tk.DoubleVar()
         max_var = tk.DoubleVar()
+        min_var = tk.DoubleVar()
         zero_var = tk.DoubleVar()
         step_var = tk.DoubleVar()
+        # delay_var = tk.DoubleVar()
         utime_var = tk.IntVar()
         self.pos_var.set(0)
-        self.vel_var.set(5)
-        self.vel_disp.set(10)
-        min_var.set(-49)
-        max_var.set(49)
-        zero_var.set(44.66)
-        step_var.set(1000)
+        self.vel_var.set(1)
+        self.filename_var.set("2021-MM-JJ_Test_1")
+        self.vel_disp.set(2)
+        min_var.set(38.75)
+        max_var.set(45)
+        zero_var.set(-30.025)
+        step_var.set(3)
+        # delay_var.set(-1*self.pos_2_delay(0,step_var.get()/1000))
+        # step_var.set(self.delay_2_pos(delay_var.get()))
         utime_var.set(1)
 
         # Define entry boxes
                 # PI stage
         pos_e = tk.Entry(frame, width = 6, textvariable = self.pos_var)
         vel_e = tk.Entry(frame, width = 6, textvariable = self.vel_var)
+        filename_e = tk.Entry(frame, width = 18, textvariable = self.filename_var)
         min_e = tk.Entry(frame, width = 6, textvariable = min_var)
         max_e = tk.Entry(frame, width = 6, textvariable = max_var)
         zero_e = tk.Entry(frame, width = 6, textvariable = zero_var)
         step_e = tk.Entry(frame, width = 6, textvariable = step_var)
+        # delay_e = tk.Entry(frame, width = 6, textvariable = delay_var)
         utime_e = tk.Entry(frame, width=6, textvariable = utime_var)
         
         # Define position of all objects on the grid
@@ -2808,20 +2821,25 @@ class LaserCooling:
         pos_e.grid(row=2, column=1, sticky='nse')
         vel_lbl.grid(row=3, column=0, sticky='nsw')
         vel_e.grid(row=3, column=1, sticky='nse')
-        param_lbl.grid(row=4, column=0, columnspan=2, sticky='nsew')
-        min_lbl.grid(row=5, column=0, sticky='nsw')
-        min_e.grid(row=5, column=1, sticky='nse')
-        max_lbl.grid(row=6, column=0, sticky='nsw')
-        max_e.grid(row=6, column=1, sticky='nse')
-        zero_lbl.grid(row=7, column=0, sticky='nsw')
-        zero_e.grid(row=7, column=1, sticky='nse')
-        step_lbl.grid(row=8, column=0, sticky='nsw')
-        step_e.grid(row=8, column=1, sticky='nse')
-        utime_lbl.grid(row=9, column=0, sticky='nsw')
-        utime_e.grid(row=9, column=1, sticky='nse')
+        filename_lbl.grid(row=4, column=0, sticky='nsw')
+        filename_e.grid(row=4, column=1, sticky='nse')
+
+        param_lbl.grid(row=5, column=0, columnspan=2, sticky='nsew')
+        min_lbl.grid(row=6, column=0, sticky='nsw')
+        min_e.grid(row=6, column=1, sticky='nse')
+        max_lbl.grid(row=7, column=0, sticky='nsw')
+        max_e.grid(row=7, column=1, sticky='nse')
+        zero_lbl.grid(row=8, column=0, sticky='nsw')
+        zero_e.grid(row=8, column=1, sticky='nse')
+        step_lbl.grid(row=9, column=0, sticky='nsw')
+        step_e.grid(row=9, column=1, sticky='nse')
+        # delay_lbl.grid(row=9, column=0, sticky='nsw')
+        # delay_e.grid(row=9, column=1, sticky='nse')
+        utime_lbl.grid(row=10, column=0, sticky='nsw')
+        utime_e.grid(row=10, column=1, sticky='nse')
 
         p_bar = ttk.Progressbar(frame, orient='horizontal', length=200, mode='determinate')
-        p_bar.grid(row=12, column=0, sticky='nsew', columnspan=2)
+        p_bar.grid(row=13, column=0, sticky='nsew', columnspan=2)
         p_bar['maximum'] = 1
         # Select a key and its effect when pressed in an entry box
             # PI stage
@@ -2855,67 +2873,67 @@ class LaserCooling:
         
         # Temporary Spectrometer things
         cons_b = tk.Button(frame, text='Connect spectrometer', command=lambda: connect_and_disable_spectro(self))
-        cons_b.grid(row=14, column=0, columnspan=2, sticky='nsew')
+        cons_b.grid(row=15, column=0, columnspan=2, sticky='nsew')
         
         inte_lbl = tk.Label(frame, text = 'Integration time (ms):')
         inte_var = tk.IntVar()
-        inte_var.set(3)
+        inte_var.set(1)
         inte_e = tk.Entry(frame, width = 6, textvariable = inte_var)
-        inte_lbl.grid(row=15, column=0, sticky='nsw')
-        inte_e.grid(row=15, column=1,sticky='nse')
+        inte_lbl.grid(row=16, column=0, sticky='nsw')
+        inte_e.grid(row=16, column=1,sticky='nse')
         int_period_lbl = tk.Label(frame, text = 'Integration period (ms):')
         int_period_var = tk.IntVar()
-        int_period_var.set(100)
+        int_period_var.set(60000)
         int_period_e = tk.Entry(frame, width = 6, textvariable = int_period_var)
-        int_period_lbl.grid(row=16, column=0, sticky='nsw')
-        int_period_e.grid(row=16, column=1,sticky='nse')
+        int_period_lbl.grid(row=17, column=0, sticky='nsw')
+        int_period_e.grid(row=17, column=1,sticky='nse')
 
         minwl_lbl = tk.Label(frame, text = 'min wl for integration(nm)')
         maxwl_lbl = tk.Label(frame, text = 'max wl for integration(nm)')
         minwl_var = tk.DoubleVar()
         maxwl_var = tk.DoubleVar()
-        minwl_var.set(615)
-        maxwl_var.set(955)
+        minwl_var.set(950)
+        maxwl_var.set(1050)
         minwl_e = tk.Entry(frame, width = 6, textvariable = minwl_var)
         maxwl_e = tk.Entry(frame, width = 6, textvariable = maxwl_var)
-        minwl_lbl.grid(row=17, column=0, sticky='nsw')
-        maxwl_lbl.grid(row=18, column=0, sticky='nsw')
-        minwl_e.grid(row=17, column=1, sticky='nse')
-        maxwl_e.grid(row=18, column=1, sticky='nse')
+        minwl_lbl.grid(row=18, column=0, sticky='nsw')
+        maxwl_lbl.grid(row=19, column=0, sticky='nsw')
+        minwl_e.grid(row=18, column=1, sticky='nse')
+        maxwl_e.grid(row=19, column=1, sticky='nse')
         
         inte_e.bind('<Return>', lambda e: self.Spectro.adjust_integration_time(inte_var))
         
         self.dark_button = tk.Button(frame, text='Get dark spectrum', state='disabled',width=18,
                            command=lambda: get_dark_spectrum(self))
-        self.dark_button.grid(row=21,column=0,sticky='nsew')
+        self.dark_button.grid(row=22,column=0,sticky='nsew')
         
         self.sub_dark_button = tk.Button(frame, text='Substract dark spectrum', state='disabled',width=18,
                                     command=lambda: remove_dark(self))
-        self.sub_dark_button.grid(row=22,column=0,sticky='nsew')
+        self.sub_dark_button.grid(row=23,column=0,sticky='nsew')
         
         self.rescale_button = tk.Button(frame, text='Rescale spectrum graph', state='disabled',width=18,
                                         command=lambda: rescale(self))
-        self.rescale_button.grid(row=23,column=0,sticky='nsew')
+        self.rescale_button.grid(row=24,column=0,sticky='nsew')
         
         # Start & stop buttons :
 
         self.start_button = tk.Button(frame, text='Start Experiment', state='disabled', width=18,
                                       command=lambda: self.start_experiment(max_pos=max_var, min_pos=min_var, zero=zero_var, step=step_var, progress=p_bar, update_time=utime_var,
                                             inte_time=inte_var, int_period=int_period_var, minwl=minwl_var, maxwl=maxwl_var))
-        self.start_button.grid(row=11, column=0, columnspan=2, sticky='nsew')
+        self.start_button.grid(row=12, column=0, columnspan=2, sticky='nsew')
         # The other lines are required option you would like to change before an experiment with the correct binding
         # and/or other function you can see the WhiteLight for more exemple.
         self.stop_button = tk.Button(frame, text='Stop Experiment', state='disabled', width=18,
                                      command=lambda: self.stop_experiment())
-        self.stop_button.grid(row=13, column=0, columnspan=2, sticky='nsew')
+        self.stop_button.grid(row=14, column=0, columnspan=2, sticky='nsew')
 
             # For spectrometer :
         self.spectro_start_button = tk.Button(frame, text='Start Spectrometer', state='disabled',width=18,
                                         command=lambda: self.start_spectro(inte_time=inte_var))
-        self.spectro_start_button.grid(row=19, column=0, sticky='nsew')
+        self.spectro_start_button.grid(row=20, column=0, sticky='nsew')
         self.spectro_stop_button = tk.Button(frame, text='Stop Spectrometer', state='disabled', width=18,
                                              command=lambda: self.stop_spectro())
-        self.spectro_stop_button.grid(row=20, column=0, sticky='nsew')
+        self.spectro_stop_button.grid(row=21, column=0, sticky='nsew')
         
 
       
@@ -2974,7 +2992,7 @@ class LaserCooling:
         parent2d = self.graph_dict["Pump_Probe"].parent
         self.graph_dict["Pump_Probe"].destroy_graph()
         self.graph_dict["Pump_Probe"] = Graphic.TwoDFrame(parent2d, axis_name=["New name", "New name2"],
-                                                       figsize=[2,2], data_size= np.transpose(self.trace).shape,cmap='seismic')
+                                                       figsize=[2,2], data_size= np.transpose(self.trace).shape)
         self.graph_dict["Pump_Probe"].change_data(np.transpose(self.trace),False)
         self.graph_dict["Pump_Probe"].im.set_extent((self.timeDelay[0],self.timeDelay[-1],self.wl_crop[-1],self.wl_crop[0]))
         aspectRatio = abs((self.timeDelay[-1]-self.timeDelay[0])/(self.wl_crop[0]-self.wl_crop[-1]))
@@ -2993,6 +3011,14 @@ class LaserCooling:
 
     def start_experiment(self, min_pos=None, max_pos=None, zero=None, step = None, progress=None, update_time=None,
                          inte_time=None, int_period=None, minwl=None, maxwl=None):
+
+        filename_final=self.filename_var.get()
+        try:
+            os.mkdir("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final))        
+        except OSError:
+            l=1
+        else:
+            l=0
 
         self.stop_button['state'] = 'normal'
         self.start_button['state'] = 'disabled'
@@ -3032,9 +3058,9 @@ class LaserCooling:
         
 
             # Steps and position vector initialisation
-        nsteps = int(np.ceil((zero - min_pos)/step))
+        nsteps = int(np.ceil((max_pos - min_pos)/step))
         iteration = np.linspace(0, nsteps, nsteps+1)
-        move = np.linspace(zero, min_pos, nsteps+1)
+        move = np.linspace(max_pos, min_pos, nsteps+1)
         pos = np.zeros(nsteps+1)
 
         self.PI.set_velocity(vel=self.vel_disp)
@@ -3044,7 +3070,7 @@ class LaserCooling:
             # Variables for the graph update
         last_gu = time.time()
         scan_graph = self.graph_dict['Scanning']
-        scan_graph.axes.set_ylim([min_pos, zero])
+        scan_graph.axes.set_ylim([min_pos, max_pos])
         scan_graph.axes.set_xlim([0, nsteps])
         scan_graph.Line.set_xdata([])
         scan_graph.Line.set_ydata([])
@@ -3054,7 +3080,7 @@ class LaserCooling:
 
 
         # Define Arduino
-        arduino=serial.Serial('COM9',115200,timeout=None)
+        # arduino=serial.Serial('COM9',115200,timeout=None)
 
 
             # Spectro
@@ -3069,77 +3095,78 @@ class LaserCooling:
         spectro_graph.Line.set_ydata(S)
         minwl = minwl.get()
         maxwl = maxwl.get()
-        self.wl_crop = wl[(wl>minwl)&(wl<maxwl)]
 
-
-        # Pump_probe_graph = self.graph_dict['Pump_Probe']
-        # Pump_probe_graph.axes.set_ylim([min_pos,zero])
-        # Pump_probe_graph.axes.set_xlim([np.min(wl),np.max(wl)])
-        # Pump_probe_graph.Line.set_xdata(wl)
-        # Pump_probe_graph.Line.set_ydata(S)
-        self.trace = np.zeros((nsteps+1,self.wl_crop.shape[0]))
+        self.trace = np.zeros((nsteps+1,wl.shape[0]))
+        signal_graph = self.graph_dict['Signal']
+        signal_graph.axes.set_ylim([1,-1])
+        signal_graph.axes.set_xlim([np.min(wl),np.max(wl)])
+        signal_graph.Line.set_xdata(wl)
+        signal_graph.Line.set_ydata(self.trace[0])
 
 
         
             # Main scanning and measurements
         for i in range(nsteps+1):
+            
+            try:
+                os.mkdir("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\spectrum")
+            except OSError:
+                l=1
+            else:
+                l=0
+
+            
             # Move stage to required position
             self.PI.go_2position(move[i])
             # Measure real position
             pos[i] = self.PI.get_position()
             
 
-            spectra_brut=[[],[]]
-            noise=[[],[]]
+            spectra_brut=[]
             
-            # Acquire spectrum and plot graph
-            arduino.reset_input_buffer()
-            while int(arduino.readline(1).decode('utf-8'))!=0:
-                continue
             
             start_daq=time.time()
             while time.time()-start_daq < int_period/1000. :
-                on_off=int(arduino.read(1).decode('utf-8'))
-                spectra_brut[on_off].append(np.array(self.Spectro.get_intensities()))
+                spectra_brut.append(np.array(self.Spectro.get_intensities()))
 
-            if len(spectra_brut[1])>len(spectra_brut[0]):
-                spectra_brut[1]=np.array(np.delete(spectra_brut[1],-1,0))
-            if len(spectra_brut[0])>len(spectra_brut[1]):
-                spectra_brut[0]=np.array(np.delete(spectra_brut[0],0,0))
             
             spectra_brute=np.array(spectra_brut)
             
             spectra_brute[spectra_brute==0]=1
             
-            spec_transpo=np.transpose(spectra_brute,axes=[0,2,1])
-            for k in range(2):
-                for j in range(len(wl)):
-                    noise[k].append(np.std(spec_transpo[k,j]))
-            noise=np.array(noise)
-                  
-            trace_brut=np.average((np.array(spectra_brute[1])-np.array(spectra_brute[0]))/np.array(spectra_brute[0]),axis=0)
-            self.trace[i] = trace_brut[(wl>minwl)&(wl<maxwl)]*1000
+            # f1=open("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\spectrum\position" + str(i) + ".npy",'a')
             
+            # f1.truncate(0)
+            
+            np.save("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\spectrum\position" + str(i) + ".npy",spectra_brute)
+
+                  
+            # trace_brut=np.average((np.array(spectra_brute[1])-np.array(spectra_brute[0]))/np.array(spectra_brute[0]),axis=0)
+            # self.trace[i] = trace_brut
+
+
+            scan_graph.Line.set_xdata(iteration[:i])
+            scan_graph.Line.set_ydata(pos[:i])
+            scan_graph.update_graph()
+            # signal_graph.Line.set_xdata(wl)
+            # signal_graph.Line.set_ydata(self.trace[i])
+            # signal_graph.axes.set_ylim([np.min(self.trace[i])*1.1,np.max(self.trace[i])*1.1])
+            # signal_graph.update_graph()            
             
             # Actualise progress bar
             if progress:
                 progress['value'] = (i)/(nsteps) 
                 progress.update()
-            # Actualise graph if required
-            if (time.time() - last_gu) > update_time:
-                scan_graph.Line.set_xdata(iteration[:i])
-                scan_graph.Line.set_ydata(pos[:i])
-                scan_graph.update_graph()
-                #Spectro signal and integrated signal
-                spectro_graph.Line.set_xdata(self.wl_crop)
-                spectro_graph.Line.set_ydata(self.trace[i])
-                spectro_graph.update_graph()
-
                 
-                last_gu = time.time()
             if not self.running:
                 break
-                        
+               
+        # f1.close()
+        
+        # np.savetxt("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\_" + str(filename_final) + ".txt",self.trace, fmt="%s", delimiter=", ")
+        np.save("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\_" + str(filename_final) + "_pos.npy",pos)
+        np.save("E:\Gabriel\Laser_Cooling_Measurement\_" + str(filename_final) + "\_" + str(filename_final) + "_wl.npy",wl)
+        
         if not self.running:
             return_vel = tk.IntVar()
             return_vel.set(5)
@@ -3155,7 +3182,7 @@ class LaserCooling:
             scan_graph.Line.set_ydata(pos)
             scan_graph.update_graph()
                 #Spectro signal and integrated signal
-            spectro_graph.Line.set_xdata(self.wl_crop)
+            spectro_graph.Line.set_xdata(wl)
             spectro_graph.Line.set_ydata(self.trace[i])
             spectro_graph.update_graph()
 
@@ -3166,9 +3193,8 @@ class LaserCooling:
 
 
         # Final calculations
-        self.timeDelay = 2*(zero-pos)*1e9/(299792458)
-
-
+        self.timeDelay =self.pos_2_delay(zero,pos)
+        
 
 
         # Going back to initial state
@@ -3178,4 +3204,288 @@ class LaserCooling:
         self.stop_button['state'] = 'disabled'
         self.start_button['state'] = 'normal'
         self.spectro_start_button['state'] = 'normal'
-        self.adjust_2dgraph()        
+        # self.adjust_2dgraph()        
+
+
+
+
+class batchSpectra:
+    # This class is implicitly called in the main frame
+    """
+    This is a class to create the user interface required to run a FROG experiment.
+    It allows to control and read a spectrometer, control a PI stage, and then
+    run an experiment synchronizing the movement of the stage and the spectra acquisition.
+    
+    Attributes:
+        
+        
+    """
+
+    def __init__(self, mainf = None):
+        """
+        This is the constructor for the FROG class.
+        Parameters:
+            
+        """
+        self.empty_var = []
+        self.graph_dict = {}
+        self.Spectro = mainf.Frame[3].Spectro
+        
+    def create_frame(self, frame):
+        """
+        The frame is created here, i.e. the labels, boxes and buttons are
+        defined here.
+        """
+        # Define labels
+        param_lbl = tk.Label(frame, text = 'Experiment parameters')
+                # 
+        
+                
+                
+        # Define variables
+                # PI stage
+        pos_var = tk.DoubleVar()
+        #vel_var = tk.DoubleVar()
+        min_var = tk.DoubleVar()
+        max_var = tk.DoubleVar()
+        step_var = tk.DoubleVar()
+        utime_var = tk.IntVar()
+        pos_var.set(0)
+        #vel_var.set(1)
+        min_var.set(-20)
+        max_var.set(20)
+        step_var.set(1)
+        utime_var.set(1)
+        
+        # Define entry boxes
+        # Define position of all objects on the grid
+                # PI stage
+        #self.con_b.grid(row=1, column=0, columnspan=2, sticky='nsew')
+        param_lbl.grid(row=4, column=0, columnspan=2, sticky='nsew')
+        
+        numDark_lbl = tk.Label(frame, text = 'Average how many dark spectra?')
+        numSpec_lbl = tk.Label(frame, text = 'Save how may spectra?')
+        numFile_lbl = tk.Label(frame, text = 'Save into how many files?')
+        numSpec_var = tk.IntVar()
+        numFile_var = tk.IntVar()
+        numDark_var = tk.IntVar()
+        numSpec_var.set(100)
+        numFile_var.set(1)
+        numDark_var.set(1)
+        numSpec_e = tk.Entry(frame, width = 6, textvariable = numSpec_var)
+        numFile_e = tk.Entry(frame, width = 6, textvariable = numFile_var)
+        numDark_e = tk.Entry(frame, width = 6, textvariable = numDark_var)
+        numDark_lbl.grid(row=5, column=0, sticky='nsw')
+        numDark_e.grid(row=5, column=1, sticky='nse')
+        
+        numSpec_lbl.grid(row=6, column=0, sticky='nsw')
+        numSpec_e.grid(row=6, column=1, sticky='nse')
+        numFile_lbl.grid(row=7, column=0, sticky='nsw')
+        numFile_e.grid(row=7, column=1, sticky='nse')
+        
+        p_bar = ttk.Progressbar(frame, orient='horizontal', length=200, mode='determinate')
+        p_bar.grid(row=15, column=0, sticky='nsew', columnspan=2)
+        p_bar['maximum'] = 1
+        
+        def connect_spectrometer(self):
+            self.Spectro.connect(exp_dependencie=True)
+            self.spectro_start_button['state'] = 'normal'
+            self.cons_b['state'] = 'disabled'
+        
+        
+        
+        def get_average_dark_spectrum(self,numDark):
+            numDark = numDark.get()
+            self.Spectro.measure_average_darkspectrum(numDark)
+            self.sub_dark_button['state']='normal'
+        
+        
+        def get_dark_spectrum(self):
+            self.Spectro.measure_darkspectrum()
+            self.sub_dark_button['state']='normal'
+        
+        def remove_dark(self):
+            self.Spectro.dark_spectrum = not self.Spectro.dark_spectrum
+        
+        def rescale(self):
+            S = self.Spectro.get_intensities()
+            spectro_graph = self.graph_dict['Spectrometer']
+            spectro_graph.axes.set_ylim([np.min(S),np.max(S)*1.1])
+            spectro_graph.update_graph()
+        
+        # Temporary Spectrometer things
+        self.cons_b = tk.Button(frame, text='Connect spectrometer', command=lambda: connect_spectrometer(self))
+        self.cons_b.grid(row=8, column=0, columnspan=2, sticky='nsew')
+        
+        inte_lbl = tk.Label(frame, text = 'Integration time (ms):')
+        inte_var = tk.IntVar()
+        inte_var.set(10)
+        inte_e = tk.Entry(frame, width = 6, textvariable = inte_var)
+        inte_lbl.grid(row=9, column=0, sticky='nsw')
+        inte_e.grid(row=9, column=1,sticky='nse')
+        
+        inte_e.bind('<Return>', lambda e: self.Spectro.adjust_integration_time(inte_var))
+        
+        self.dark_button = tk.Button(frame, text='Get dark spectrum', state='disabled',width=18,
+                           command=lambda: get_average_dark_spectrum(self,numDark = numDark_var))
+        self.dark_button.grid(row=10,column=0,sticky='nsew')
+        
+        self.sub_dark_button = tk.Button(frame, text='Substract dark spectrum', state='disabled',width=18,
+                                    command=lambda: remove_dark(self))
+        self.sub_dark_button.grid(row=11,column=0,sticky='nsew')
+        
+        self.rescale_button = tk.Button(frame, text='Rescale spectrum graph', state='disabled',width=18,
+                                        command=lambda: rescale(self))
+        self.rescale_button.grid(row=12,column=0,sticky='nsew')
+        
+        # Start & stop buttons :
+        self.start_button = tk.Button(frame, text='Start Experiment', state='disabled', width=18,
+                                      command=lambda: self.start_experiment(progress=p_bar, update_time=utime_var,
+                                            inte_time=inte_var, numSpec=numSpec_var, numFile=numFile_var))
+        self.start_button.grid(row=13, column=0, columnspan=2, sticky='nsew')
+        # The other lines are required option you would like to change before an experiment with the correct binding
+        # and/or other function you can see the WhiteLight for more exemple.
+        self.stop_button = tk.Button(frame, text='Stop Experiment', state='disabled', width=18,
+                                     command=lambda: self.stop_experiment())
+        self.stop_button.grid(row=14, column=0, columnspan=2, sticky='nsew')
+
+            # For spectrometer :
+        self.spectro_start_button = tk.Button(frame, text='Start Spectrometer', state='disabled',width=18,
+                                        command=lambda: self.start_spectro(inte_time=inte_var))
+        self.spectro_start_button.grid(row=2, column=0, sticky='nsew')
+        self.spectro_stop_button = tk.Button(frame, text='Stop Spectrometer', state='disabled', width=18,
+                                             command=lambda: self.stop_spectro())
+        self.spectro_stop_button.grid(row=3, column=0, sticky='nsew')
+        
+        
+    def start_spectro(self, inte_time=None):
+        self.dark_button['state'] = 'normal'
+        self.rescale_button['state'] = 'normal'
+        self.spectro_stop_button['state'] = 'normal'
+        self.spectro_start_button['state'] = 'disabled'
+        self.start_button['state'] = 'disabled'
+        self.running = True
+        
+        self.Spectro.adjust_integration_time(inte_time)
+        wl = self.Spectro.spectro.wavelengths()
+        S = self.Spectro.get_intensities()
+        spectro_graph = self.graph_dict['Spectrometer']
+        spectro_graph.axes.set_ylim([np.min(S),np.max(S)*1.1])
+        spectro_graph.axes.set_xlim([np.min(wl),np.max(wl)])
+        
+        while self.running is True:            
+            wl = self.Spectro.spectro.wavelengths()
+            S = self.Spectro.get_intensities()
+            spectro_graph.Line.set_xdata(wl)
+            spectro_graph.Line.set_ydata(S)     
+            spectro_graph.Line.set_xdata(wl)
+            spectro_graph.Line.set_ydata(S)
+            spectro_graph.update_graph()
+        
+        
+    def stop_spectro(self):
+        self.running = False
+        self.dark_button['state'] = 'disabled'
+        self.sub_dark_button['state'] = 'disabled'
+        self.rescale_button['state'] = 'normal'
+        self.spectro_stop_button['state'] = 'disabled'
+        self.spectro_start_button['state'] = 'normal'  
+        self.start_button['state'] = 'normal'
+        
+
+    def stop_experiment(self):
+        self.running = False
+        self.spectro_start_button['state'] = 'normal'
+
+    def start_experiment(self, progress=None, update_time=None,
+                         inte_time=None, numSpec=None, numFile=None):
+
+        self.stop_button['state'] = 'normal'
+        self.start_button['state'] = 'disabled'
+        #self.update_button['state'] = 'disabled'
+        self.spectro_start_button['state'] = 'disabled'
+        self.running = True
+        
+            # Parameters initialisation
+        numSpec = numSpec.get()
+        numFile = numFile.get()
+        update_time = update_time.get()
+        
+        
+        # Spectro
+        wl = self.Spectro.spectro.wavelengths()
+        S = self.Spectro.get_intensities()
+        self.Spectro.adjust_integration_time(inte_time)
+        spectro_graph = self.graph_dict['Spectrometer']
+        spectro_graph.axes.set_ylim([np.min(S),np.max(S)])
+        spectro_graph.axes.set_xlim([np.min(wl),np.max(wl)])
+        spectro_graph.Line.set_xdata(wl)
+        spectro_graph.Line.set_ydata(S)
+        
+        # Create folder to save
+        timeStamp = datetime.datetime.now().strftime("%Y-%m-%d %Hh%M_%S")
+        folderPath = 'measurements/Batch acquisition - ' + timeStamp
+        os.mkdir(folderPath)
+        
+        # Save wavelengths vector
+        np.save(folderPath + '/Wavelengths.npy', wl)
+        
+        # Determine how to split spectra
+        if numFile<2:
+            numFile = 1
+            lastFileNum = numSpec
+            mainFileNum = numSpec
+        else:
+            if numSpec%(numFile) == 0:
+                mainFileNum = round(numSpec/numFile)
+                lastFileNum = round(numSpec/numFile)
+                
+            elif  numSpec%(numFile-1) == 0:
+                mainFileNum = round(numSpec/(numFile-1))-1
+                lastFileNum = numFile-1
+            else:
+                lastFileNum = numSpec%(numFile-1)
+                mainFileNum = round((numSpec - lastFileNum)/(numFile-1))
+        
+            # Main scanning and measurements
+        for ii in range(numFile):
+            
+            if ii == numFile-1:
+                savSpecArray = np.zeros((lastFileNum, len(wl)))
+            else:
+                savSpecArray = np.zeros((mainFileNum, len(wl)))
+            
+            for jj in range(savSpecArray.shape[0]):
+                savSpecArray[jj,:] = self.Spectro.get_intensities()
+                
+            fileName = 'spectra - ' + str(ii) + '.npy'
+            np.save(folderPath + '/' + fileName, savSpecArray)
+            
+            # Actualise progress bar
+            if progress:
+                progress['value'] = (ii+1)/(numFile)
+                progress.update()
+                
+            if not self.running:
+                break       
+            
+            
+        if not self.running:
+            messagebox.showinfo(title='Error', message='Experiment was aborted')
+        else:
+            messagebox.showinfo(title='INFO', message='Measurements is done.')
+        
+        # Going back to initial state
+        self.running = False
+        progress['value'] = 0
+        progress.update()
+        self.stop_button['state'] = 'disabled'
+        self.start_button['state'] = 'normal'
+        self.spectro_start_button['state'] = 'normal'
+        #self.update_button['state'] = 'normal'
+        
+        
+        
+
+
+

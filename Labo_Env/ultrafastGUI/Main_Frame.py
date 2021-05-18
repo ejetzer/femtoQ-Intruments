@@ -14,7 +14,6 @@ import Physics_Instrument
 import UeyeCam
 import threading
 
-
 # Main Frame creation
 class MainFrame(tk.Tk):
 
@@ -1985,8 +1984,11 @@ class Experiment(ttk.LabelFrame):
                       option=['Physics_Linear_Stage','Spectrometer'],
                       graph={'Scanning': ['Step number', 'Measured stage position [mm]'],
                              'Spectro': ['wavelength (nm)', 'Intensity (arb.u.)'],
+                             'Signal': ['wavelength (nm)', 'Intensity (arb.u.)'],
                              'Pump_Probe': ['Wavelengths [nm]', 'Delay [um]'], 
 })
+        create_layout(name='Batch Spectra', function_=Experiment_file.batchSpectra, option=['Spectrometer'],
+                      graph={'Spectrometer': ['Wavelengths [nm]', 'Intensity [arb.u.]']})
         #create_layout(name='Template', function_=Experiment_file.TemplateForExperiment,
         #              option=['Zurich', 'Spectrometer', 'Monochrom'], graph={'1': ['a', 'b'], '2': ['c', 'd']})
         ##########
