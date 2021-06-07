@@ -17,11 +17,12 @@ class Zurich:
         self.state = {}
         self.in_use = False
         self.subscribing = False
-        poll_length = 0.1 # Time of the aquisition in second
-        poll_timeout = 500 # [ms]
+        poll_length = 0.1  # Time of the aquisition in second
+        poll_timeout = 500  # [ms]
         poll_flags = 0
-        poll_return_dict = True # This is how the data is returned
-        self.poll_set = [poll_length, poll_timeout, poll_flags, poll_return_dict]
+        poll_return_dict = True  # This is how the data is returned
+        self.poll_set = [poll_length, poll_timeout,
+                         poll_flags, poll_return_dict]
 
     def connect_device(self, devicename, required_options=None, required_err_msg='', exp_dependencie=False):
         import zhinst.utils as utils
@@ -37,14 +38,14 @@ class Zurich:
         # Get the device's connectivity properties.
         props = d.get(device_id)
         if not props['discoverable']:
-            messagebox.showinfo(message= "The specified device `{}` is not discoverable  ".format(devicename) +
-                           "from the API. Please ensure the device is powered-on and visible using the LabOne User" +
-                           "Interface or ziControl.", title='Information')
+            messagebox.showinfo(message="The specified device `{}` is not discoverable  ".format(devicename) +
+                                "from the API. Please ensure the device is powered-on and visible using the LabOne User" +
+                                "Interface or ziControl.", title='Information')
         else:
             if not re.search(dev_type, props['devicetype']):
                 messagebox.showinfo(message="Required device type not satisfied. Device type `{}` does not match the" +
-                                           "required device type:`{}`. {}".format(props['devicetype'], dev_type,
-                                                                                  required_err_msg))
+                                    "required device type:`{}`. {}".format(props['devicetype'], dev_type,
+                                                                           required_err_msg))
 
             if required_options:
                 assert isinstance(required_options, list), "The keyword argument must be a list of string each entry" \
@@ -66,7 +67,8 @@ class Zurich:
                     installed_options = props['options'] + ['AWG']
                 else:
                     installed_options = props['options']
-                missing_options = regex_option_diff(required_options, installed_options)
+                missing_options = regex_option_diff(
+                    required_options, installed_options)
                 if missing_options:
                     raise Exception("Required option set not satisfied. The specified device `{}` has the `{}` options "
                                     "installed but is missing the required options `{}`. {}".
@@ -77,11 +79,13 @@ class Zurich:
             # Ensure that we connect on an compatible API Level (from where create_api_session() was called).
             apilevel = min(apilevel_device, api_level)
             # Creating a Daq server for the device with the parameters found
-            daq = ziPython.ziDAQServer(props['serveraddress'], props['serverport'], apilevel)
+            daq = ziPython.ziDAQServer(
+                props['serveraddress'], props['serverport'], apilevel)
             messagebox.showinfo(message='Zurich Instrument device {} is connected'.format(device_id),
                                 title='Information')
             self.info = {'daq': daq, 'device': device_id, 'prop': props}
-            self.default = utils.default_output_mixer_channel(self.info['prop'])
+            self.default = utils.default_output_mixer_channel(
+                self.info['prop'])
             self.node_branch = daq.listNodes('/%s/' % device_id, 0)
             reset_settings = [
                 ['/%s/demods/*/enable' % device_id, 0],
@@ -107,14 +111,16 @@ class Zurich:
             return
 
         if 'oscs' in setting_line:
-            state = self.info['daq'].getInt('/{}{}'.format(self.info['device'], setting_line))
+            state = self.info['daq'].getInt(
+                '/{}{}'.format(self.info['device'], setting_line))
             if state == 1:
                 messagebox.showinfo(title='Error', message='This option is unavailable until the external reference' +
                                     'is unconnected.')
                 return
 
         tension_unit = {'V': 1, 'mV': .001, 'uV': 10 ^ (-6)}
-        sample_unit = {'n': 10 ^ (-9), 'u': 10 ^ (-6), 'm': 10 ^ (-3), 'k': 10 ^ 3, 'M': 10 ^ 6}
+        sample_unit = {'n': 10 ^ (-9), 'u': 10 ^ (-6),
+                       'm': 10 ^ (-3), 'k': 10 ^ 3, 'M': 10 ^ 6}
         factor = 1
         setting = []
         if not value:
@@ -133,7 +139,8 @@ class Zurich:
                     factor = sample_unit[value[1].get()]
                 elif type_ == 'double_bw2tc':
                     import zhinst.utils as utils
-                    value = utils.bw2tc(bandwidth=value[0].get(), order=value[1].get())
+                    value = utils.bw2tc(
+                        bandwidth=value[0].get(), order=value[1].get())
                 value = value*factor
             else:
                 if type_ == 'double' or type_ == 'int':
@@ -145,7 +152,8 @@ class Zurich:
                         if unit in str_tot_value:
                             factor = sample_unit[unit]
                             str_value = str_tot_value.split(unit)
-                            value_float = round(float(str_value[0]), len(str_value[0])) * factor
+                            value_float = round(
+                                float(str_value[0]), len(str_value[0])) * factor
                             found = True
                         elif found:
                             pass
@@ -153,7 +161,8 @@ class Zurich:
                     if not found:
                         str_value = str_tot_value
                         try:
-                            value_float = round(float(str_value), len(str_value))
+                            value_float = round(
+                                float(str_value), len(str_value))
                         except ValueError:
                             value.set('1.717k')
                             value_float = 1717
@@ -168,43 +177,55 @@ class Zurich:
 
             if type(setting_line) == str:
                 if type_ == 'combobox':
-                    setting = ['/{}{}'.format(self.info['device'], setting_line), value.current()]
+                    setting = [
+                        '/{}{}'.format(self.info['device'], setting_line), value.current()]
                     print(setting)
                 elif type_ == 'combobox_external':
                     selected = value.current()
-                    state = self.info['daq'].getInt('/{}{}/enable'.format(self.info['device'], setting_line))
-                    mode = self.info['daq'].getInt('/{}{}/automode'.format(self.info['device'], setting_line))
+                    state = self.info['daq'].getInt(
+                        '/{}{}/enable'.format(self.info['device'], setting_line))
+                    mode = self.info['daq'].getInt(
+                        '/{}{}/automode'.format(self.info['device'], setting_line))
                     if selected == 0:
-                        setting = ['/{}{}/enable'.format(self.info['device'], setting_line), 0]
+                        setting = [
+                            '/{}{}/enable'.format(self.info['device'], setting_line), 0]
                     elif selected == 1:
                         if state == 1:
                             if mode == 2 or mode == 3:
-                                setting = ['/{}{}/automode'.format(self.info['device'], setting_line), 4]
+                                setting = [
+                                    '/{}{}/automode'.format(self.info['device'], setting_line), 4]
                             else:
                                 return
                         elif state == 0:
-                            setting = ['/{}{}/enable'.format(self.info['device'], setting_line), 1]
+                            setting = [
+                                '/{}{}/enable'.format(self.info['device'], setting_line), 1]
                     elif selected == 2:
                         if state == 1:
-                            setting = ['/{}{}/automode'.format(self.info['device'], setting_line), 2]
+                            setting = [
+                                '/{}{}/automode'.format(self.info['device'], setting_line), 2]
                         elif state == 0:
                             setting = [['/{}{}/enable'.format(self.info['device'], setting_line), 1],
                                        ['/{}{}/automode'.format(self.info['device'], setting_line), 2]]
                     elif selected == 3:
                         if state == 1:
-                            setting = ['/{}{}/automode'.format(self.info['device'], setting_line), 3]
+                            setting = [
+                                '/{}{}/automode'.format(self.info['device'], setting_line), 3]
                         elif state == 0:
                             setting = [['/{}{}/enable'.format(self.info['device'], setting_line), 1],
                                        ['/{}{}/automode'.format(self.info['device'], setting_line), 3]]
                 else:
                     # Value has to be defined
-                    setting = ['/{}{}'.format(self.info['device'], setting_line), value]
+                    setting = [
+                        '/{}{}'.format(self.info['device'], setting_line), value]
             else:
                 if setting_line[0] == 'output':
-                    setting = ['/{}{}'.format(self.info['device'], setting_line[1]), value]
-                    setting.append(['/{}{}/{}'.format(self.info['device'], setting_line[2][0], self.default), value])
+                    setting = [
+                        '/{}{}'.format(self.info['device'], setting_line[1]), value]
+                    setting.append(
+                        ['/{}{}/{}'.format(self.info['device'], setting_line[2][0], self.default), value])
                     # I have to find a way to get the input amplitude or output... I am not sure just yet
-                    setting.append(['/{}{}/{}'.format(self.info['device'], setting_line[2][1], self.default), 2])
+                    setting.append(
+                        ['/{}{}/{}'.format(self.info['device'], setting_line[2][1], self.default), 2])
 
         setting = [setting]
         print(setting)
@@ -226,16 +247,22 @@ class Zurich:
         index = index[1].split('/enable')[0]
         import zhinst.utils as utils
         basics = [['/%s/demods/%s/enable' % (self.info['device'], index), value],
-                  ['/%s/demods/%s/phaseshift' % (self.info['device'], index), 0],
-                  ['/%s/demods/%s/rate' % (self.info['device'], index), int(1.717e3)],
-                  ['/%s/demods/%s/adcselect' % (self.info['device'], index), 0],
+                  ['/%s/demods/%s/phaseshift' %
+                      (self.info['device'], index), 0],
+                  ['/%s/demods/%s/rate' %
+                      (self.info['device'], index), int(1.717e3)],
+                  ['/%s/demods/%s/adcselect' %
+                      (self.info['device'], index), 0],
                   ['/%s/demods/%s/order' % (self.info['device'], index), 1],
-                  ['/%s/demods/%s/timeconstant' % (self.info['device'], index), utils.bw2tc(100, 1)],
-                  ['/%s/demods/%s/oscselect' % (self.info['device'], index), 0],
+                  ['/%s/demods/%s/timeconstant' %
+                      (self.info['device'], index), utils.bw2tc(100, 1)],
+                  ['/%s/demods/%s/oscselect' %
+                      (self.info['device'], index), 0],
                   ['/%s/demods/%d/harmonic' % (self.info['device'], 0), 1]]
         self.info['daq'].set(basics)
         self.info['daq'].sync()
-        self.paths['/{}/demods/{}/sample'.format(self.info['device'], index)] = True
+        self.paths['/{}/demods/{}/sample'.format(
+            self.info['device'], index)] = True
 
     def add_subscribed(self, path, child_class, graph_class):
         # path is the path associated with the object.
@@ -271,7 +298,8 @@ class Zurich:
         if self.in_use:
             return
         subscribed = self.subscribed
-        data_set = self.info['daq'].poll(self.poll_set[0], self.poll_set[1], self.poll_set[2], self.poll_set[3])
+        data_set = self.info['daq'].poll(
+            self.poll_set[0], self.poll_set[1], self.poll_set[2], self.poll_set[3])
         self.in_use = True
         # Ici pour le bug de superposition
         try:
@@ -297,7 +325,8 @@ class Scope:
 
     def enable_scope(self, scope, variable):
         if not self.zurich.info:
-            messagebox.showinfo(title='Error', message='There is no device connected')
+            messagebox.showinfo(
+                title='Error', message='There is no device connected')
             variable.set('disable')
             return
         value = None
@@ -320,7 +349,8 @@ class Scope:
 
     def enable_trigger(self, scope, trigger, variable_):
         if not self.zurich.info:
-            messagebox.showinfo(title='Error', message='There is no device connected')
+            messagebox.showinfo(
+                title='Error', message='There is no device connected')
             variable_.set('disable')
             return
         trigger = trigger.get()
@@ -328,30 +358,40 @@ class Scope:
         Trig_Settings = [['/{}/scopes/{}/trigenable'.format(device, scope), 1],
                          ['/{}/scopes/{}/trigchannel'.format(device, scope), trigger]]
         # Trigger on rising edge ?
-        Trig_Settings.append(['/{}/scopes/{}/trigrising'.format(device, scope), 1])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trigrising'.format(device, scope), 1])
         # Trigger on falling edge ?
-        Trig_Settings.append(['/{}/scopes/{}/trigfalling' .format(device, scope), 0])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trigfalling' .format(device, scope), 0])
         # Trigger on threshold level
-        Trig_Settings.append(['/{}/scopes/{}/triglevel' .format(device, scope), 0.00])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/triglevel' .format(device, scope), 0.00])
         # Set hysteresis triggering threshold to avoid triggering on noise
         # 'trighysteresis/mode' :
         #  0 - absolute, use an absolute value ('scopes/{}/trighysteresis/absolute')
         #  1 - relative, use a relative value ('scopes/{}/trighysteresis/relative') of the trigchannel's input range
         #  (0.1=10%).
-        Trig_Settings.append(['/{}/scopes/{}/trighysteresis/mode' .format(device, scope), 1])
-        Trig_Settings.append(['/{}/scopes/{}/trighysteresis/relative' .format(device, scope), 0.1])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trighysteresis/mode' .format(device, scope), 1])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trighysteresis/relative' .format(device, scope), 0.1])
         # Set the trigger hold-off mode of the scope. After recording a trigger event, this specifies when the scope should
         # become re-armed and ready to trigger, 'trigholdoffmode':
         #  {} - specify a hold-off time between triggers in seconds ('scopes/{}/trigholdoff'),
         #  1 - specify a number of trigger events before re-arming the scope ready to trigger ('scopes/{}/trigholdcount').
-        Trig_Settings.append(['/{}/scopes/{}/trigholdoffmode' .format(device, scope), 0])
-        Trig_Settings.append(['/{}/scopes/{}/trigholdoff' .format(device, scope), 0.025])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trigholdoffmode' .format(device, scope), 0])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trigholdoff' .format(device, scope), 0.025])
         # Set trigdelay to {}.: Start recording from when the trigger is activated.
-        Trig_Settings.append(['/{}/scopes/{}/trigdelay' .format(device, scope), 0.0])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/trigdelay' .format(device, scope), 0.0])
         # Disable trigger gating.
-        Trig_Settings.append(['/{}/scopes/{}/triggate/enable' .format(device, scope), 0])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/triggate/enable' .format(device, scope), 0])
         # Disable segmented data recording.
-        Trig_Settings.append(['/{}/scopes/{}/segments/enable' .format(device, scope), 0])
+        Trig_Settings.append(
+            ['/{}/scopes/{}/segments/enable' .format(device, scope), 0])
         # External Trigger
         # I need to learn more about the external ref format
         Trig_Settings.append(['/{}/extrefs/{}/enable' .format(device, 0), 1])
@@ -373,8 +413,10 @@ class Scope:
             Nb_Smple = shot['totalsamples']
             time = np.linspace(0, shot['dt'] * Nb_Smple, Nb_Smple)
             # Scope Input channel is 0 but we can add up to 3 if im correct
-            wave = shot['channeloffset'][0] + shot['channelscaling'][0] * shot['wave'][:, 0]
-            self.axes.set_ylim([min(wave) - abs(min(wave) * 15 / 100), max(wave) + max(wave) * 15 / 100])
+            wave = shot['channeloffset'][0] + \
+                shot['channelscaling'][0] * shot['wave'][:, 0]
+            self.axes.set_ylim(
+                [min(wave) - abs(min(wave) * 15 / 100), max(wave) + max(wave) * 15 / 100])
             self.axes.set_xlim(
                 [min(1e6 * time) - abs(min(1e6 * time) * 15 / 100), max(1e6 * time) + max(1e6 * time) * 15 / 100])
             if (not shot['flags']) and (len(wave) == Nb_Smple):
@@ -412,7 +454,8 @@ class Plotter:
                 pass
             elif len(str_value[1]) == 0:
                 factor = units[unit]
-                time_float = round(float(str_value[0]), len(str_value[0])) * factor
+                time_float = round(
+                    float(str_value[0]), len(str_value[0])) * factor
                 found = True
         if not found:
             try:
@@ -440,20 +483,24 @@ class Plotter:
                 if item == '/demods/':
                     for i in range(0, 7):
                         if '{}'+option_list[option].format(self.zurich.info['device'], i) in self.zurich.paths:
-                            self.path['{}'+option_list[option].format(self.zurich.info['device'], i)] = True
+                            self.path['{}'+option_list[option].format(
+                                self.zurich.info['device'], i)] = True
                 elif item == '/boxcars/':
                     for j in range(0, 1):
                         if '{}'+option_list[option].format(self.zurich.info['device'], j) in self.zurich.paths:
-                            self.path['{}'+option_list[option].format(self.zurich.info['device'], j)] = True
+                            self.path['{}'+option_list[option].format(
+                                self.zurich.info['device'], j)] = True
             else:
                 if item == '/demods/':
                     for i in range(0, 7):
                         if '{}'+option_list[option].format(self.zurich.info['device'], i) in self.zurich.paths:
-                            self.path['{}'+option_list[option].format(self.zurich.info['device'], i)] = False
+                            self.path['{}'+option_list[option].format(
+                                self.zurich.info['device'], i)] = False
                 elif item == '/boxcars/':
                     for j in range(0, 1):
                         if '{}'+option_list[option].format(self.zurich.info['device'], j) in self.zurich.paths:
-                            self.path['{}'+option_list[option].format(self.zurich.info['device'], j)] = False
+                            self.path['{}'+option_list[option].format(
+                                self.zurich.info['device'], j)] = False
 
         if displayed_state.get() == 'enable':
             self.update_plotter(graph, displayed_state)
@@ -465,7 +512,8 @@ class Plotter:
             self.zurich.state['Plotter'] = False
         for element in self.path:
             if self.path[element]:
-                self.add_subscribed(path=self.path[element], child_class=self, graph_class=graph)
+                self.add_subscribed(
+                    path=self.path[element], child_class=self, graph_class=graph)
             elif not self.path[element]:
                 self.unsubscribed_path(element)
 
@@ -496,8 +544,10 @@ class Boxcar:
         self.frequency = None
         self.ugraph = 'phase'
         self.line_list = []
-        self.line_list.append(Graphic.VerticalDraggableLine(self, axes=self.axes))
-        self.line_list.append(Graphic.VerticalDraggableLine(self, axes=self.axes, x=150))
+        self.line_list.append(
+            Graphic.VerticalDraggableLine(self, axes=self.axes))
+        self.line_list.append(Graphic.VerticalDraggableLine(
+            self, axes=self.axes, x=150))
         self.window_start = min(self.line_list[0].x, self.line_list[1].x)
         self.window_length = abs(self.line_list[1].x - self.line_list[1].x)
 
@@ -505,7 +555,8 @@ class Boxcar:
         pwa_input = pwa_input.get()
         box_input = box_input.get()
         if not self.zurich.info:
-            messagebox.showinfo(title='Error', message='There is no device connected')
+            messagebox.showinfo(
+                title='Error', message='There is no device connected')
             variable.set('disable')
             return
         value = None
@@ -519,18 +570,29 @@ class Boxcar:
         inputpwa_index = 0
         boxcar_index = 0
         BOX_Settings = [['/%s/inputpwas/%d/oscselect' % (device, inputpwa_index), 0],
-                        ['/%s/inputpwas/%d/inputselect' % (device, inputpwa_index), pwa_input],
-                        ['/%s/inputpwas/%d/mode' % (device, inputpwa_index), 1],
-                        ['/%s/inputpwas/%d/shift' % (device, inputpwa_index), 0.0],
-                        ['/%s/inputpwas/%d/harmonic' % (device, inputpwa_index), 1],
-                        ['/%s/inputpwas/%d/enable' % (device, inputpwa_index), value],
-                        ['/%s/boxcars/%d/oscselect' % (device, boxcar_index), 0],
-                        ['/%s/boxcars/%d/inputselect' % (device, boxcar_index), box_input],
-                        ['/%s/boxcars/%d/windowstart' % (device, boxcar_index), self.window_start],
-                        ['/%s/boxcars/%d/windowsize' % (device, boxcar_index), self.window_length],
-                        ['/%s/boxcars/%d/limitrate' % (device, boxcar_index), 1e6],
+                        ['/%s/inputpwas/%d/inputselect' %
+                            (device, inputpwa_index), pwa_input],
+                        ['/%s/inputpwas/%d/mode' %
+                            (device, inputpwa_index), 1],
+                        ['/%s/inputpwas/%d/shift' %
+                            (device, inputpwa_index), 0.0],
+                        ['/%s/inputpwas/%d/harmonic' %
+                            (device, inputpwa_index), 1],
+                        ['/%s/inputpwas/%d/enable' %
+                            (device, inputpwa_index), value],
+                        ['/%s/boxcars/%d/oscselect' %
+                            (device, boxcar_index), 0],
+                        ['/%s/boxcars/%d/inputselect' %
+                            (device, boxcar_index), box_input],
+                        ['/%s/boxcars/%d/windowstart' %
+                            (device, boxcar_index), self.window_start],
+                        ['/%s/boxcars/%d/windowsize' %
+                            (device, boxcar_index), self.window_length],
+                        ['/%s/boxcars/%d/limitrate' %
+                            (device, boxcar_index), 1e6],
                         ['/%s/boxcars/%d/periods' % (device, boxcar_index), 1],
-                        ['/%s/boxcars/%d/enable' % (device, boxcar_index), value],
+                        ['/%s/boxcars/%d/enable' %
+                            (device, boxcar_index), value],
                         ]
         self.zurich.info['daq'].set(BOX_Settings)
         self.zurich.info['daq'].sync()
@@ -539,32 +601,42 @@ class Boxcar:
 
     def phase_and_time(self, variable):
         if not self.zurich.info:
-            messagebox.showinfo(title='Error', message='There is no device connected')
+            messagebox.showinfo(
+                title='Error', message='There is no device connected')
             return
         if not self.frequency:
-            self.frequency = self.zurich.info['daq'].getDouble('/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
+            self.frequency = self.zurich.info['daq'].getDouble(
+                '/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
         current = variable.current()
         if current == 0:
             self.line_list[0].x = self.line_list[0].x/self.xfactor
             self.line_list[1].x = self.line_list[1].x/self.xfactor
             self.xfactor = 1/(2*np.pi)
             self.ugraph = 'time'
-            self.line_list[0].x = self.line_list[0].x*self.xfactor/self.frequency
-            self.line_list[1].x = self.line_list[1].x*self.xfactor/self.frequency
+            self.line_list[0].x = self.line_list[0].x * \
+                self.xfactor/self.frequency
+            self.line_list[1].x = self.line_list[1].x * \
+                self.xfactor/self.frequency
         else:
-            self.line_list[0].x = self.line_list[0].x/self.xfactor*self.frequency
-            self.line_list[1].x = self.line_list[1].x/self.xfactor*self.frequency
+            self.line_list[0].x = self.line_list[0].x / \
+                self.xfactor*self.frequency
+            self.line_list[1].x = self.line_list[1].x / \
+                self.xfactor*self.frequency
             self.xfactor = 360/(2*np.pi)
             self.ugraph = 'phase'
             self.line_list[0].x = self.line_list[0].x*self.xfactor
             self.line_list[1].x = self.line_list[1].x*self.xfactor
 
     def refresh(self, path):
-        frequency_set = self.zurich.info['daq'].getDouble('/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
+        frequency_set = self.zurich.info['daq'].getDouble(
+            '/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
         factor2 = 360/(2*np.pi*self.xfactor)
-        self.window_start = min(self.line_list[0].x, self.line_list[1].x)*factor2
-        self.window_length = abs(self.line_list[0].x - self.line_list[1].x)*factor2
-        self.window_length = self.window_length/ (2 * np.pi * 360 * frequency_set)
+        self.window_start = min(
+            self.line_list[0].x, self.line_list[1].x)*factor2
+        self.window_length = abs(
+            self.line_list[0].x - self.line_list[1].x)*factor2
+        self.window_length = self.window_length / \
+            (2 * np.pi * 360 * frequency_set)
         self.zurich.info['daq'].unsubscribe(path)
         boxwindow = [['/%s/boxcars/%d/windowstart' % (self.zurich.info['device'], 0), self.window_start],
                      ['/%s/boxcars/%d/windowsize' % (self.zurich.info['device'], 0), self.window_length]]
@@ -576,26 +648,28 @@ class Boxcar:
         if not(self.zurich.paths[path]):
             return
 
-        frequency = self.zurich.info['daq'].getDouble('/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
+        frequency = self.zurich.info['daq'].getDouble(
+            '/{}/oscs/{}/freq'.format(self.zurich.info['device'], 0))
         if self.ugraph == 'time':
             if (not (self.window_start != (min(self.line_list[0].x,
-                                              self.line_list[1].x)*frequency/self.xfactor)*360/(2*np.pi)) or not (
+                                               self.line_list[1].x)*frequency/self.xfactor)*360/(2*np.pi)) or not (
                     self.window_length != (abs(self.line_list[0].x -
-                                              self.line_list[1].x)*frequency/self.xfactor)*360/(2*np.pi))):
+                                               self.line_list[1].x)*frequency/self.xfactor)*360/(2*np.pi))):
                 self.refresh(path=path)
         if self.ugraph == 'phase':
             if (not (self.window_start != (min(self.line_list[0].x,
-                                              self.line_list[1].x)/self.xfactor)*360/(2*np.pi)) or not (
+                                               self.line_list[1].x)/self.xfactor)*360/(2*np.pi)) or not (
                     self.window_length != (abs(self.line_list[0].x -
-                                              self.line_list[1].x)/self.xfactor)*360/(2*np.pi))):
+                                               self.line_list[1].x)/self.xfactor)*360/(2*np.pi))):
                 self.refresh(path=path)
         # This takes the wave data stored in the daq and push them into the  it in the assigned figure
         boxcar_data = data[path][-1]
         self.axes.axhline(0, color='k')
         amplitude = boxcar_data['x']
-        if self.ugraph=='time':
-            boxcar_data['binphase'] = boxcar_data['binphase'] * self.xfactor/frequency
-        if self.ugraph=='phase':
+        if self.ugraph == 'time':
+            boxcar_data['binphase'] = boxcar_data['binphase'] * \
+                self.xfactor/frequency
+        if self.ugraph == 'phase':
             boxcar_data['binphase'] = boxcar_data['binphase'] * self.xfactor
         phase = boxcar_data['binphase']
         # The inputpwa waveform is stored in 'x', currently 'y' is unused.
@@ -605,4 +679,3 @@ class Boxcar:
                             max(phase) + max(phase) * 15 / 100])
         self.line.set_ydata(amplitude)
         self.line.set_xdata(phase)
-

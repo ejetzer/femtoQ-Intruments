@@ -36,21 +36,26 @@ class MainFrame(tk.Tk):
         self.Frame.append(Experiment(self, mainf=self))
         self.Frame.append(Ueye_Frame(self, mainf=self))
         self.Frame[0].grid(row=0, column=0, sticky="nsew")
+
         # Mini Image and Mainframe title
         directory = Path.cwd()
         image = tk.PhotoImage(master=self, file=directory / "FMQ3.gif")
         tk.Tk.wm_title(self, "femtoQPy")
         tk.Tk.wm_iconphoto(self, "-default", image)
+
         # Menubar creation
         menubar = tk.Menu(self)
+
         filemenu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="File", underline=0, menu=filemenu)
         filemenu.add_command(label="Exit", underline=1,
                              command=lambda: self.quit())
+
         winmenu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Window", underline=0, menu=winmenu)
         winmenu.add_command(
-            label="Home", underline=0, command=lambda: self.frame_switch(self.Frame[0])
+            label="Home", underline=0,
+            command=lambda: self.frame_switch(self.Frame[0])
         )
         winmenu.add_command(
             label="Zurich",
@@ -73,8 +78,11 @@ class MainFrame(tk.Tk):
             command=lambda: self.frame_switch(self.Frame[4]),
         )
         winmenu.add_command(
-            label="Ueye", underline=0, command=lambda: self.frame_switch(self.Frame[5])
+            label="Ueye",
+            underline=0,
+            command=lambda: self.frame_switch(self.Frame[5])
         )
+
         graphmenu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Graph", underline=0, menu=graphmenu)
         graphmenu.add_command(
@@ -102,6 +110,7 @@ class MainFrame(tk.Tk):
         new.grid(column=0, row=0, sticky="nsew")
 
     def closing_procedure(self):
+        # TODO en faire une bune boucleoucle avec une méthode commune
         if self.Frame[1]:
             # Do something to close the zurich
             pass
@@ -109,7 +118,7 @@ class MainFrame(tk.Tk):
             self.Frame[2].Linstage.device.CloseConnection()
         if self.Frame[2].Mono.arduino:
             # Do something to close serial connection
-            pass
+            self.Frame[2].Mono.arduino.close()
         if self.Frame[3].Spectro.spectro:
             # Do something to close connection with spectrometer
             pass
@@ -139,6 +148,9 @@ class HomePage(tk.Frame):
             for j in range(2):
                 self.grid_columnconfigure(i, weight=1)
                 self.grid_rowconfigure(j, weight=1)
+
+    def disconnect(self):
+        pass
 
 
 # Frame dispositions for the Zurich Instruments
@@ -2986,38 +2998,39 @@ class Experiment(ttk.LabelFrame):
         # graph : is a dictionary containing the name of the desired graph and the name of the axis as a tuple
         # window
         create_layout(name='White_Light', function_=Experiment_file.WhiteLight,
-                      option=['Monochrom', 'Zurich', 'Spectrometer', 'Physics_Linear_Stage'],
+                      option=['Monochrom', 'Zurich',
+                              'Spectrometer', 'Physics_Linear_Stage'],
                       graph={'Wave': ['Wavelength', 'Max Delay'], 'Delay': ['Delay', 'Intensity']})
         create_layout(name='Zero Delay', function_=Experiment_file.ZeroDelay,
                       option=['Physics_Linear_Stage'],
                       graph={'Power': ['Stage position [um]', 'Normalized Voltage'], 'Else': ['a', 'b']})
         create_layout(name='Electro Optic Sampling Zero Delay', function_=Experiment_file.Electro_Optic_Sampling_ZeroDelay,
-                      option=['Physics_Linear_Stage','Spectrometer'],
-                      graph={'Scanning': ['Step number', 'Measured stage position [mm]'], 'Spectro': ['wavelength (nm)', 'Intensity (arb.u.)'],'Signal':['delay (mm)','signal (arb.u.)']})
-        create_layout(name='FROG', function_=Experiment_file.FROG, option=['Physics_Linear_Stage','Spectrometer'],
+                      option=['Physics_Linear_Stage', 'Spectrometer'],
+                      graph={'Scanning': ['Step number', 'Measured stage position [mm]'], 'Spectro': ['wavelength (nm)', 'Intensity (arb.u.)'], 'Signal': ['delay (mm)', 'signal (arb.u.)']})
+        create_layout(name='FROG', function_=Experiment_file.FROG, option=['Physics_Linear_Stage', 'Spectrometer'],
                       graph={'Scanning': ['Step number', 'Measured stage position [mm]'],
-                             'FROG trace': ['Wavelengths [nm]', 'Delay [fs]'], 
+                             'FROG trace': ['Wavelengths [nm]', 'Delay [fs]'],
                              'Spectrometer': ['Wavelengths [nm]', 'Intensity [arb.u.]'],
-                             'Autocorrelation':['Delay [fs]','Normalized intensity']})
+                             'Autocorrelation': ['Delay [fs]', 'Normalized intensity']})
         create_layout(name='Electro Optic Sampling', function_=Experiment_file.Electro_Optic_Sampling,
                       option=['Physics_Linear_Stage'],
-                      graph={'Scanning': ['Step number', 'Measured stage position [mm]'],'Signal':['Time (fs)','Signal (mV)'],'Spectrum':['Frequency (THz)','Normalized intensity']})
-        create_layout(name='2DSI', function_=Experiment_file.TwoDSI, option=['Physics_Linear_Stage','Spectrometer'],
+                      graph={'Scanning': ['Step number', 'Measured stage position [mm]'], 'Signal': ['Time (fs)', 'Signal (mV)'], 'Spectrum': ['Frequency (THz)', 'Normalized intensity']})
+        create_layout(name='2DSI', function_=Experiment_file.TwoDSI, option=['Physics_Linear_Stage', 'Spectrometer'],
                       graph={'Scanning': ['Step number', 'Measured stage position [mm]'],
-                             '2DSI trace': ['Wavelengths [nm]', 'Delay [um]'], 
+                             '2DSI trace': ['Wavelengths [nm]', 'Delay [um]'],
                              'Spectrometer': ['Wavelengths [nm]', 'Intensity [arb.u.]'],
-                             'Shear reference':['Wavelengths [nm]', 'Stage posiiton [um]'],
-                             'Shear calc. curve':['Stage position [um]','Shear frequency [THz]']})
+                             'Shear reference': ['Wavelengths [nm]', 'Stage posiiton [um]'],
+                             'Shear calc. curve': ['Stage position [um]', 'Shear frequency [THz]']})
         create_layout(name='Pump-Probe Spectrscopy', function_=Experiment_file.PumpProbe,
-                      option=['Physics_Linear_Stage','Spectrometer'],
+                      option=['Physics_Linear_Stage', 'Spectrometer'],
                       graph={'Scanning': ['Step number', 'Measured stage position [mm]'],
                              'Spectro': ['wavelength (nm)', 'Intensity (arb.u.)'],
                              'Signal': ['wavelength (nm)', 'Intensity (arb.u.)'],
-                             'Pump_Probe': ['Wavelengths [nm]', 'Delay [um]'], 
-})
+                             'Pump_Probe': ['Wavelengths [nm]', 'Delay [um]'],
+                             })
         create_layout(name='Batch Spectra', function_=Experiment_file.batchSpectra, option=['Spectrometer'],
                       graph={'Spectrometer': ['Wavelengths [nm]', 'Intensity [arb.u.]']})
-        #create_layout(name='Template', function_=Experiment_file.TemplateForExperiment,
+        # create_layout(name='Template', function_=Experiment_file.TemplateForExperiment,
         #              option=['Zurich', 'Spectrometer', 'Monochrom'], graph={'1': ['a', 'b'], '2': ['c', 'd']})
         ##########
         experiment_name.current(2)
