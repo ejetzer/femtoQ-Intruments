@@ -16,7 +16,7 @@
 #define DELAI_COM 2000u // [ms] Délai minimal entre les communications
 
 // Variables globales
-volatile uint32_t nombre_de_tours = 0; // Nombre de tours dans les derniers delai ms
+volatile uint64_t nombre_de_tours = 0; // Nombre de tours dans les derniers delai ms
 uint32_t derniere_mesure, derniere_com; // [ms] Moment de la dernière mesure ou communication
 
 void setup() {
